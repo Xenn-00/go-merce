@@ -11,4 +11,8 @@ Then, install the required dependencies:
 ```bash
 go mod download
 ```
-
+### Usage
+To run the project, use the following command:
+```bash
+go run main.go
+```
