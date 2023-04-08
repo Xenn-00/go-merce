@@ -234,5 +234,13 @@ func SearchProductbyQuery() gin.HandlerFunc {
 			return
 		}
 		defer searchQueryDB.Close(ctx)
+
+		if err := searchQueryDB.Err(); err != nil {
+			log.Println(err.Error())
+			c.IndentedJSON(http.StatusBadRequest, "invalid request")
+			return
+		}
+		defer cancel()
+		c.IndentedJSON(http.StatusOK, searchProducts)
 	}
 }
