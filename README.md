@@ -16,3 +16,7 @@ To run the project, use the following command:
 ```bash
 go run main.go
 ```
+This will start the server on `localhost:7000`.
+
+### API Endpoints
+The following API endpoints are available:
