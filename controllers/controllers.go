@@ -6,19 +6,33 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/Xenn-00/go-merce/database"
 	"github.com/Xenn-00/go-merce/models"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
+var UserCollection *mongo.Collection = database.UserData(database.Client, "Users")
+var ProductCollection *mongo.Collection = database.ProductData(database.Client, "Products")
+
 func HashPassword(password string) string {
-	return ""
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Panic(err.Error())
+	}
+	return string(bytes)
 }
 
 func VerifyPassword(userPassword string, givenPassword string) (bool, string) {
-	return false, ""
+	err := bcrypt.CompareHashAndPassword([]byte(givenPassword), []byte(userPassword))
+	if err != nil {
+		return false, "incorrect email or password"
+	}
+	return true, ""
 }
 
 func SignUp() gin.HandlerFunc {
@@ -150,14 +164,19 @@ func Login() gin.HandlerFunc {
 
 		generate.UpdateAllTokens(token, refresh_token, foundUser.User_ID)
 		c.JSON(http.StatusFound, gin.H{
-			"status_code" : http.StatusFound,
-			"message" : "successfully login",
+			"status_code": http.StatusFound,
+			"message":     "successfully login",
 		})
 	}
 }
 
 func ProductViewerAdmin() gin.HandlerFunc
 
-func SearchProduct() gin.HandlerFunc
+func SearchProduct() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var productList []models.Product
+		
+	}
+}
 
 func SearchProductbyQuery() gin.HandlerFunc
