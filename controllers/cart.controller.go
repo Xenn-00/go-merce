@@ -8,7 +8,9 @@ import (
 	"time"
 
 	"github.com/Xenn-00/go-merce/database"
+	"github.com/Xenn-00/go-merce/models"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
@@ -106,7 +108,83 @@ func (app *Application) RemoveItem() gin.HandlerFunc {
 }
 
 func (app *Application) GetItemFromCart() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id := c.Query("id")
 
+		if id == "" {
+			c.Header("Content-Type", "application/json")
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Invalid ID",
+			})
+			c.Abort()
+			return
+		}
+
+		user_id, _ := primitive.ObjectIDFromHex(id)
+
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+
+		var filledCart models.User
+		err := UserCollection.FindOne(ctx, bson.D{primitive.E{Key: "_id", Value: user_id}}).Decode(&filledCart)
+		if err != nil {
+			log.Println(err.Error())
+			c.IndentedJSON(http.StatusInternalServerError, "Not found")
+			return
+		}
+
+		filter_match := bson.D{
+			{Key: "$match",
+				Value: bson.D{
+					primitive.E{
+						Key:   "_id",
+						Value: user_id,
+					},
+				},
+			}}
+		unwind := bson.D{
+			{Key: "$unwind",
+				Value: bson.D{
+					primitive.E{
+						Key:   "path",
+						Value: "$user_cart"},
+				},
+			},
+		}
+		grouping := bson.D{
+			{Key: "$group",
+				Value: bson.D{
+					primitive.E{
+						Key:   "_id",
+						Value: "$_id",
+					}, {
+						Key: "total",
+						Value: bson.D{
+							primitive.E{
+								Key:   "$sum",
+								Value: "$user_cart.price",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		cursor, err := UserCollection.Aggregate(ctx, mongo.Pipeline{filter_match, unwind, grouping})
+		if err != nil {
+			log.Println(err.Error())
+		}
+		var listing []bson.M
+		if err = cursor.All(ctx, &listing); err != nil {
+			log.Println(err.Error())
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+		for _, json := range listing {
+			c.IndentedJSON(http.StatusOK, json["total"])
+			c.IndentedJSON(http.StatusOK, filledCart.UserCart)
+		}
+		ctx.Done()
+	}
 }
 
 func (app *Application) BuyFromCart() gin.HandlerFunc {
