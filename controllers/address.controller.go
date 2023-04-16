@@ -147,6 +147,12 @@ func EditHomeAddress() gin.HandlerFunc {
 			return
 		}
 		var editAddress models.Address
+		if err := c.BindJSON(&editAddress); err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{
+				"status_code": http.StatusBadRequest,
+				"error":       err.Error(),
+			})
+		}
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
 
@@ -211,6 +217,12 @@ func EditWorkAddress() gin.HandlerFunc {
 			return
 		}
 		var editAddress models.Address
+		if err := c.BindJSON(&editAddress); err != nil {
+			c.IndentedJSON(http.StatusBadRequest, gin.H{
+				"status_code": http.StatusBadRequest,
+				"error":       err.Error(),
+			})
+		}
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
 
@@ -224,23 +236,23 @@ func EditWorkAddress() gin.HandlerFunc {
 			Key: "$set",
 			Value: bson.D{
 				primitive.E{
-					Key:   "address.0.house_name",
+					Key:   "address.1.house_name",
 					Value: editAddress.House,
 				},
 				{
-					Key:   "address.0.street_name",
+					Key:   "address.1.street_name",
 					Value: editAddress.Street,
 				},
 				{
-					Key:   "address.0.city_name",
+					Key:   "address.1.city_name",
 					Value: editAddress.City,
 				},
 				{
-					Key:   "address.0.province_name",
+					Key:   "address.1.province_name",
 					Value: editAddress.Province,
 				},
 				{
-					Key:   "address.0.post_code",
+					Key:   "address.1.post_code",
 					Value: editAddress.Postcode,
 				},
 			},
@@ -251,7 +263,7 @@ func EditWorkAddress() gin.HandlerFunc {
 		}
 		defer cancel()
 		ctx.Done()
-		c.IndentedJSON(http.StatusOK, "Successfully update house address")
+		c.IndentedJSON(http.StatusOK, "Successfully update work address")
 	}
 }
 
