@@ -29,7 +29,7 @@ func DeleteAddress() gin.HandlerFunc {
 			})
 			return
 		}
-
+		// technically it's not remove the value, it's just update the value to 0 / empty
 		addresses := make([]models.Address, 0)
 		user_id, err := primitive.ObjectIDFromHex(Id)
 		if err != nil {
@@ -46,5 +46,13 @@ func DeleteAddress() gin.HandlerFunc {
 		filter := bson.D{primitive.E{Key: "_id", Value: user_id}}
 		update := bson.D{{Key: "$set", Value: bson.D{primitive.E{Key: "address", Value: addresses}}}}
 
+		_, err = UserCollection.UpdateOne(ctx, filter, update)
+		if err != nil {
+			c.IndentedJSON(http.StatusNotFound, "Wrong Command")
+			return
+		}
+		defer cancel()
+		ctx.Done()
+		c.IndentedJSON(http.StatusOK, "Successfully deleted")
 	}
 }
