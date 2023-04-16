@@ -166,23 +166,23 @@ func EditHomeAddress() gin.HandlerFunc {
 			Key: "$set",
 			Value: bson.D{
 				primitive.E{
-					Key:   "address.0.house_name",
+					Key:   "address.0.house",
 					Value: editAddress.House,
 				},
 				{
-					Key:   "address.0.street_name",
+					Key:   "address.0.street",
 					Value: editAddress.Street,
 				},
 				{
-					Key:   "address.0.city_name",
+					Key:   "address.0.city",
 					Value: editAddress.City,
 				},
 				{
-					Key:   "address.0.province_name",
+					Key:   "address.0.province",
 					Value: editAddress.Province,
 				},
 				{
-					Key:   "address.0.post_code",
+					Key:   "address.0.postcode",
 					Value: editAddress.Postcode,
 				},
 			},
@@ -236,23 +236,23 @@ func EditWorkAddress() gin.HandlerFunc {
 			Key: "$set",
 			Value: bson.D{
 				primitive.E{
-					Key:   "address.1.house_name",
+					Key:   "address.1.house",
 					Value: editAddress.House,
 				},
 				{
-					Key:   "address.1.street_name",
+					Key:   "address.1.street",
 					Value: editAddress.Street,
 				},
 				{
-					Key:   "address.1.city_name",
+					Key:   "address.1.city",
 					Value: editAddress.City,
 				},
 				{
-					Key:   "address.1.province_name",
+					Key:   "address.1.province",
 					Value: editAddress.Province,
 				},
 				{
-					Key:   "address.1.post_code",
+					Key:   "address.1.postcode",
 					Value: editAddress.Postcode,
 				},
 			},
