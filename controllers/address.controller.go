@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -9,9 +10,122 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-func AddAddress() gin.HandlerFunc
+func AddAddress() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id := c.Query("id")
+		if id == "" {
+			c.Header("Content-Type", "application/json")
+			c.JSON(http.StatusNotFound, gin.H{
+				"error": "Invalid id",
+			})
+			c.Abort()
+			return
+		}
+
+		address, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{
+				"status_code": http.StatusInternalServerError,
+				"error":       err.Error(),
+			})
+			return
+		}
+
+		var addresses models.Address
+		addresses.Address_ID = primitive.NewObjectID()
+		if err = c.BindJSON(&addresses); err != nil {
+			c.IndentedJSON(http.StatusNotAcceptable, gin.H{
+				"error": err.Error(),
+			})
+		}
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		filter_match := bson.D{
+			{Key: "$match",
+				Value: bson.D{
+					primitive.E{
+						Key:   "_id",
+						Value: address,
+					},
+				},
+			},
+		}
+		unwind := bson.D{
+			{Key: "$unwind",
+				Value: bson.D{
+					primitive.E{
+						Key:   "path",
+						Value: "$address",
+					},
+				},
+			},
+		}
+		group := bson.D{{
+			Key: "$group",
+			Value: bson.D{
+				primitive.E{
+					Key:   "_id",
+					Value: "$address_id",
+				},
+				{
+					Key: "count",
+					Value: bson.D{
+						primitive.E{
+							Key:   "$sum",
+							Value: 1,
+						},
+					},
+				},
+			},
+		}}
+
+		cursor, err := UserCollection.Aggregate(ctx, mongo.Pipeline{filter_match, unwind, group})
+		if err != nil {
+			c.IndentedJSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+		}
+		var addressInfo []bson.M
+		if err := cursor.All(ctx, &addressInfo); err != nil {
+			panic(err)
+		}
+
+		var size int32
+		for _, address_no := range addressInfo {
+			count := address_no["count"]
+			size = count.(int32)
+		}
+		if size < 2 {
+			filter := bson.D{
+				primitive.E{
+					Key:   "_id",
+					Value: address,
+				},
+			}
+			update := bson.D{
+				{
+					Key: "$push",
+					Value: bson.D{
+						primitive.E{
+							Key:   "address",
+							Value: addresses,
+						},
+					},
+				},
+			}
+			_, err := UserCollection.UpdateOne(ctx, filter, update)
+			if err != nil {
+				fmt.Println(err)
+			}
+		} else {
+			c.IndentedJSON(http.StatusBadRequest, "Not Allowed")
+		}
+		defer cancel()
+		ctx.Done()
+	}
+}
 
 func EditAddress() gin.HandlerFunc
 
