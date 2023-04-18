@@ -5,7 +5,7 @@ This repository contains the backend logic for an e-commerce application built u
 ### Instalation
 To install this project, clone the repository:
 ```bash
-git clone https://github.com/yourusername/e-commerce-backend.git
+git clone https://github.com/Xenn-00/go-merce.git
 ```
 Then, install the required dependencies:
 ```bash
