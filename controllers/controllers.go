@@ -2,12 +2,14 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/Xenn-00/go-merce/database"
 	"github.com/Xenn-00/go-merce/models"
+	"github.com/Xenn-00/go-merce/tokens"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/bson"
@@ -102,7 +104,7 @@ func SignUp() gin.HandlerFunc {
 		user.Updated_At, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		user.ID = primitive.NewObjectID()
 		user.User_ID = user.ID.Hex()
-		token, refresh_token, _ := generate.TokenGenerate(user.Email, user.FirstName, user.LastName, user.User_ID)
+		token, refresh_token, _ := tokens.TokenGenerator(*user.Email, *user.FirstName, *user.LastName, user.User_ID)
 		user.Token = &token
 		user.Refresh_Token = &refresh_token
 		user.UserCart = make([]models.ProductUser, 0)
@@ -139,6 +141,7 @@ func Login() gin.HandlerFunc {
 			})
 			return
 		}
+		var foundUser models.User
 		err := UserCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&foundUser)
 		defer cancel()
 		if err != nil {
@@ -149,7 +152,7 @@ func Login() gin.HandlerFunc {
 			return
 		}
 
-		isPasswordValid, message := VerifyPassword(*user.Password, &foundUser.Password)
+		isPasswordValid, message := VerifyPassword(*user.Password, *foundUser.Password)
 		defer cancel()
 
 		if !isPasswordValid {
@@ -157,12 +160,13 @@ func Login() gin.HandlerFunc {
 				"status_code": http.StatusBadRequest,
 				"error":       "incorrect email or password",
 			})
+			fmt.Println(message)
 			return
 		}
-		token, refresh_token, _ := generate.TokenGenerate(*foundUser.Email, *foundUser.FirstName, *foundUser.LastName)
+		token, refresh_token, _ := tokens.TokenGenerator(*foundUser.Email, *foundUser.FirstName, *foundUser.LastName, *&foundUser.User_ID)
 		defer cancel()
 
-		generate.UpdateAllTokens(token, refresh_token, foundUser.User_ID)
+		tokens.UpdateAllToken(token, refresh_token, foundUser.User_ID)
 		c.JSON(http.StatusFound, gin.H{
 			"status_code": http.StatusFound,
 			"message":     "successfully login",
@@ -170,7 +174,32 @@ func Login() gin.HandlerFunc {
 	}
 }
 
-func ProductViewerAdmin() gin.HandlerFunc
+func ProductViewerAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		var products models.Product
+		defer cancel()
+		if err := c.ShouldBindJSON(&products);err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error" : err.Error(),
+			})
+			return
+		}
+		products.Product_ID = primitive.NewObjectID()
+		_, err := ProductCollection.InsertOne(ctx, products)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error" : err.Error(),
+			})
+			return
+		}
+		defer cancel()
+		c.JSON(http.StatusOK, gin.H{
+			"status_code" : http.StatusOK,
+			"message" : "Successfully add product",
+		})
+	}
+}
 
 func SearchProduct() gin.HandlerFunc {
 	return func(c *gin.Context) {
