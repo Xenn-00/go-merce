@@ -193,6 +193,29 @@ func BuyItemFromCart(ctx context.Context, userCollection *mongo.Collection, user
 	}
 	_, err = userCollection.UpdateOne(ctx, secondFilter, secondUpdate)
 	if err != nil {
+		log.Println(err)
+
+	}
+	emptyUserCart := make([]models.ProductUser, 0)
+	filtered := bson.D{
+		primitive.E{
+			Key:   "_id",
+			Value: id,
+		},
+	}
+	updated := bson.D{
+		{
+			Key: "$set",
+			Value: bson.D{
+				primitive.E{
+					Key:   "user_cart",
+					Value: emptyUserCart,
+				},
+			},
+		},
+	}
+	_, err = userCollection.UpdateOne(ctx, filtered, updated)
+	if err != nil {
 		return ErrCantBuyCartItem
 	}
 	return nil
